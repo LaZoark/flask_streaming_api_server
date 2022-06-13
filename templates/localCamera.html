@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<head>
+	<title>Simple Image Taker</title>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+	<!-- Compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+	
+	<!-- Import custom stylesheet -->
+	<link rel="stylesheet" href="style.css">
+
+	<!-- Compiled and minified JavaScript -->
+	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js">
+	</script>
+</head>
+<body>
+<video id="video" width="640" height="480" autoplay style="background-color: grey"></video>
+<button id="snap">Take Photo</button>
+<canvas id="canvas" width="640" height="480" style="background-color: grey"></canvas>
+<button id="upload">Upload Photo</button>
+
+<script>
+    // Elements for taking the snapshot
+    var video = document.getElementById('video');
+    // Get the canvas for the edited image
+    let canvas = document.getElementById('canvas');
+    // Get the 2D context of the image
+    let context = canvas.getContext('2d');
+
+    // Get access to the camera!
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        // Not adding `{ audio: true }` since we only want video now
+        navigator.mediaDevices.getUserMedia({ video: true }).then(function (stream) {
+            //video.src = window.URL.createObjectURL(stream);
+            video.srcObject = stream; // assing stream to <video>
+            video.play();             // play stream
+        });
+    }
+
+    // Trigger photo take
+    document.getElementById("snap").addEventListener("click", function () {
+        context.drawImage(video, 0, 0, 640, 480);  // copy video frame to canvas
+    });
+    document.getElementById("upload").addEventListener("click", function () {
+        context.drawImage(video, 0, 0, 640, 480);  // copy video frame to canvas
+    });
+</script>
+
+</body>
