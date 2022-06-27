@@ -9,7 +9,7 @@ app = Flask(__name__)
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 # url = 'rtsp://wisepaas:310505030@192.168.1.52:554/stream2'
 # url = 'rtsp://wisepaas:310505030@nycu-wisepaas.onthewifi.com:5005/stream1'
-url = 1
+url = 0
 # url = 'http://61.220.211.130:9993/Live?channel=1443&mode=0'
 # url = 'https://cctvatis4.ntpc.gov.tw/C000232'
 # url = 'https://cdn-004.whatsupcams.com/hls/hr_pula01.m3u8' # 超屌不知哪個國家
@@ -30,7 +30,7 @@ video = cv2.VideoCapture(url)
 # video.set(cv2.CAP_PROP_BUFFERSIZE, 30)  # set buffer size 
 
 
-frames = [open('facemask\\facemask-' + str(f) + '.jpg', 'rb').read() for f in range(0, 67)]
+frames = [open('facemask/facemask-' + str(f) + '.jpg', 'rb').read() for f in range(0, 67)]
 def gen_frames():
     counter = 0
     while True:
@@ -61,7 +61,7 @@ def gen_face(video, _remote_addr, request_start_time, _path):
         # counter = 0
         while True:
             for f in range(0, 67):
-                frame = cv2.imread('facemask\\facemask-' + str(f) + '.jpg')
+                frame = cv2.imread('facemask/facemask-' + str(f) + '.jpg')
                 # frame = frames[counter % 67]
                 # frame = cv2.imread(frame)
                 # frame = Image.frombytes(frame)
@@ -166,7 +166,7 @@ def favicon():
 
 
 # ZeroSSL 認證用
-app.config['UPLOAD_FOLDER'] = os.getcwd()+ '\\.well-known\\pki-validation\\' #取得伺服器目前路徑
+app.config['UPLOAD_FOLDER'] = os.getcwd()+ '/.well-known/pki-validation/' #取得伺服器目前路徑
 @app.route('/.well-known/pki-validation/<path:filename>', methods=['GET', 'POST'])
 def acme_challenge(filename):
     print(request.url, app.config['UPLOAD_FOLDER'])
@@ -185,7 +185,7 @@ def Image_Editor():
     return render_template('ImageEditor.html')
 
 if __name__ == '__main__':
-    ssl = ['ssl\\certificate.crt', 'ssl\\ca_bundle.crt', 'ssl\\private.key']
+    ssl = ['ssl/certificate.crt', 'ssl/ca_bundle.crt', 'ssl/private.key']
     app.run(host='0.0.0.0', port=5000, debug=0, threaded=True, ssl_context=(ssl[0], ssl[2]))
     # app.run(host='0.0.0.0', port=5000, threaded=True, ssl_context=('cert.pem', 'key.pem'))
     # app.run(host='0.0.0.0', port=5000, threaded=True, )
