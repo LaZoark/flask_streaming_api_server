@@ -2,13 +2,14 @@ from flask import Flask, render_template, Response, stream_with_context, jsonify
 # from flask import redirect
 from markupsafe import escape
 import cv2, time, os
-from PIL import Image
+from PIL import Image, ImageSequence
+import numpy as np
 
 app = Flask(__name__)
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 # url = 'rtsp://wisepaas:310505030@192.168.1.52:554/stream2'
 # url = 'rtsp://wisepaas:310505030@nycu-wisepaas.onthewifi.com:5005/stream1'
-url = 1
+url = 0
 # url = 'http://61.220.211.130:9993/Live?channel=1443&mode=0'
 # url = 'https://cctvatis4.ntpc.gov.tw/C000232'
 # url = 'https://cdn-004.whatsupcams.com/hls/hr_pula01.m3u8' # 超屌不知哪個國家
@@ -29,7 +30,7 @@ video = cv2.VideoCapture(url)
 # video.set(cv2.CAP_PROP_BUFFERSIZE, 30)  # set buffer size 
 
 
-frames = [open('facemask\\facemask-' + str(f) + '.jpg', 'rb').read() for f in range(0, 67)]
+frames = [open('facemask/facemask-' + str(f) + '.jpg', 'rb').read() for f in range(0, 67)]
 def gen_frames():
     counter = 0
     while True:
@@ -45,46 +46,51 @@ def video_feed():
 
 def gen(video, _remote_addr, request_start_time, _path):
     try:
+        counter = 0
         while True:
-            success, image = video.read()
-            # image = image[125:-125, 150:-150]
-            ret, jpeg = cv2.imencode('.jpg', image)
-            frame = jpeg.tobytes()
-            yield (b'--frame\r\n'
-                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+            frame = frames[counter % 67]
+            counter += 1
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            time.sleep(0.1)
     except GeneratorExit:
         request_time = lambda: "%.4f" % (time.time() - request_start_time)
         print(f'[Closed] Connection with {_remote_addr} after {request_time()} seconds @ {_path}')
 
 def gen_face(video, _remote_addr, request_start_time, _path):
-    try:
+    try:    
+        # counter = 0
         while True:
-            # Read the frame
-            _, image = video.read()
-            # image = image[125:-125, 150:-150]
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.12,
-            minNeighbors=4)
-            for (x, y, w, h) in faces:
-                cv2.rectangle(image, (x, y), (x+w, y+h), (255, 255, 0), 2)
-            ret, jpeg = cv2.imencode('.jpg', image)
-            # time.sleep(0.1)
-            frame = jpeg.tobytes()
-            yield (b'--frame\r\n'
-                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+            for f in range(0, 67):
+                frame = cv2.imread('facemask/facemask-' + str(f) + '.jpg')
+                # frame = frames[counter % 67]
+                # frame = cv2.imread(frame)
+                # frame = Image.frombytes(frame)
+                # frame = frame.convert('RGB')
+                # frame = np.array(frame, dtype=np.uint8)
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                faces = face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.12,
+                minNeighbors=4)
+                for (x, y, w, h) in faces:
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 255, 0), 2)
+                # counter += 1
+                ret, jpeg = cv2.imencode('.jpg', frame)
+                frame = jpeg.tobytes()
+                # yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                yield (b'--frame\r\n'
+                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+                time.sleep(0.05)
     except GeneratorExit:
         request_time = lambda: "%.4f" % (time.time() - request_start_time)
         print(f'[Closed] Connection with {_remote_addr} after {request_time()} seconds @ {_path}')
 
 def gen_cap(video):
-    success, image = video.read()
-    # image = image[125:-125, 150:-150]
-    ret, jpeg = cv2.imencode('.jpg', image)
-    frame = jpeg.tobytes()
-    yield (b'--frame\r\n'
-           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+    counter = 0
+    frame = frames[counter % 67]
+    counter += 1
+    yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    time.sleep(0.1)
 
 
 
@@ -160,7 +166,7 @@ def favicon():
 
 
 # ZeroSSL 認證用
-app.config['UPLOAD_FOLDER'] = os.getcwd()+ '\\.well-known\\pki-validation\\' #取得伺服器目前路徑
+app.config['UPLOAD_FOLDER'] = os.getcwd()+ '/.well-known/pki-validation/' #取得伺服器目前路徑
 @app.route('/.well-known/pki-validation/<path:filename>', methods=['GET', 'POST'])
 def acme_challenge(filename):
     print(request.url, app.config['UPLOAD_FOLDER'])
@@ -174,9 +180,12 @@ def takephoto():
 def Image_Editor_Capture():
     return render_template('Image_Editor_Capture.html')
 
+@app.route('/Apollo_is_so_annoying')
+def Image_Editor():
+    return render_template('ImageEditor.html')
 
 if __name__ == '__main__':
-    ssl = ['ssl\\certificate.crt', 'ssl\\ca_bundle.crt', 'ssl\\private.key']
+    ssl = ['ssl/certificate.crt', 'ssl/ca_bundle.crt', 'ssl/private.key']
     app.run(host='0.0.0.0', port=5000, debug=0, threaded=True, ssl_context=(ssl[0], ssl[2]))
     # app.run(host='0.0.0.0', port=5000, threaded=True, ssl_context=('cert.pem', 'key.pem'))
     # app.run(host='0.0.0.0', port=5000, threaded=True, )
